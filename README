@@ -1,0 +1,224 @@
+
+###########################
+
+	tgftools-1.x
+	
+	README   - 31 May 2011
+	
+	Vandiver Chaplin (chapliv@uah.edu)
+
+###########################
+
+
+
+i.   About
+ii.  Installation
+iii. Usage
+
+
+---------------------------------------------------
+
+I. About
+
+This package builds the following C++ programs:
+
+	get_fermi_nadir  \
+	get_tgf_coords    -  Coordinate routines
+	get_match_coords /
+	
+	make_match_data  - DRM + Data extraction	
+	make_data_plot	 - TTE Plotter (optional, but built by default). Requires Dislin.
+	tgftools_config  - utility
+
+In addition it contains the following scripts
+
+	add_strokes.pl
+	add_tgfs.pl
+	show_strokes.sh
+	show_tgfs.sh
+	remove_strokes.pl
+	remove_tgfs.pl
+	remove_matches.pl
+	show_ttedata.sh
+	show_posdata.sh
+	posharchive.pl
+	ttearchive.pl
+
+
+---------------------------------------------------
+
+II. Installation
+
+This is an autotools package which installs like most GNU packages.
+GCC >= 4.0 is required.
+
+Dependencies:
+
+	SQLITE Version >= 3.6   Most recent UNIX OS's already have this since it is widely used.
+							Type `sqlite3 -version` in a terminal.
+							It can be downloaded from http://www.sqlite.org/.
+	CFITSIO
+	
+	CFITSIO.pm (Perl FITS).  http://hea-www.harvard.edu/~rpete/cfitsio/
+	
+	DISLIN & corresponding libXm (OpenMotif) if building make_data_plot.
+
+	GBMDRMdb002 & gbmrsp.exe version 1.91 (these aren't needed at compile time).
+
+
+Untar and cd to the tgftools-1.x directory.  Type
+
+./configure --help
+
+to see a list of options.  Note: sqlite3 and cfitsio appear in the 
+"Optional Packages" list, but are not optional.  This is just a convenient way
+to specifiy their location, if in a non-standard location.
+
+
+For the default installation if dependencies are in the compiler/linker path:
+./configure 
+make 
+make install
+
+The default prefix is /usr/local/tgftools
+
+*** If you see errors about sprintf() not defined,
+I *think* this is due to a minor inconsistency between g++ defaults
+for different versions and OS's. You'll have to set the compiler to a later C++ standard:
+
+export CXXFLAGS="-std=gnu++0x $CXXFLAGS"
+
+then re-run configure.
+***
+
+
+
+*NOTE:
+It is recommended not to use '--with-rspgen', '--with-drmdb', or '--with-datadb'.
+These allow you to hard-code the location of the response generator, DRM database,
+and GBM data files database, but are not needed at compile time.  The environment
+variables GBMRSPDIR, GBMDRMDB002, and GBMDB will be used instead (at run-time)
+using the standard C routine 'getenv()'.*
+
+
+After installation, there will be an init script for Bash or C-shells in <prefix>,
+<prefix>/tgftools_init.csh or
+<prefix>/tgftools_init.sh
+
+These are short scripts which just set a few environment variables.
+While the environment variable TGFTOOLS is not required, it's useful
+to set TGFTOOLS=<prefix> in your shell login, then all you need do is
+type '. $TGFTOOLS/tgftools_init.sh', etc.
+
+
+
+---------------------------------------------------
+III. USAGE
+
+get_fermi_nadir [-met -mjd -utc] time  [-fmt utc_format (only with -utc)]  [--help]
+	Calculates the longitude and latitude of Fermi at the given time.
+
+
+get_match_coords [-s window -r max_radius -n --help]
+	Loops over the TGFs in $TGFDB, and does a time/space search for strokes.
+	Matching strokes have a stroke time within 'window' seconds of each TGF,
+	and a ground-level distance less than 'max_radius' km.
+	Gives the user the option of 'commiting' matches to the match table,
+	which creates an entry containing tgf id, the match id, and coordinates.
+
+
+get_tgf_coords [-met -mjd -utc] time [-fmt utc_format] [-s window] [--help] lon lat
+	Calculates the spacecraft coordinates of a single source given by lon, lat at the given time.
+	If lon,lat is not given, the ligthing table is searched for any strokes occuring
+	within time +/- window seconds.
+	A GBM position file covering the input time must be available.
+
+
+make_match_data [--help] 
+    Displays the current matches table and asks the whether to create DRMs and TTE data
+
+
+make_data_plot [-tgf tgfid] or [-met -mjd -utc time] [-w -wms window] [-dx -dxms binsize] 
+	Plot TTE lightcurve with the given parameters.
+
+
+
+-- Scripts: ---
+posharchive.pl     - Adds time range and file location of
+					 GBM Poshist and TRIGDAT files to the data table.  This is used
+					 for fast record searching by time through a large amount of position 
+					 files. File paths are recorded, so the files should be in a semi-permanent location.
+					 The table is "pos" in the database $GBMDB or the one set by '--with-datadb=<...>'.
+
+ttearchive.pl     - Adds time range and file location of
+					 GBM TTE files to the data table. These can be burst or continuous TTE.
+					 Used for fast record searching for making plots and extracting subsets.
+					 The table is "tte" in the database $GBMDB or the one set by '--with-datadb'.
+
+show_ttedata.sh   
+show_posdata.sh   - Prints the time range of files in the database
+
+	
+add_strokes.pl     - takes input from STDIN which specifies a stroke as:
+					  utc time.second fraction (<= 6 digits), 
+					  long, 
+					  lat, 
+					  source
+					  
+					  The stroke gets added to the 'lightning' table in $TGFDB.
+					
+					E.g,
+					> YYYY:MM:DD hh:mm:ss.ffffff , 163.2, 11.29, WWLLN
+					
+					A file with lines like the above can be used via IO redirection
+					to add lots strokes at once.
+					
+remove_strokes.pl  - Removes strokes specified by a UTC string "YYYY:MM:DD hh:mm:ss" and 
+					 a second fraction "0.ddddd".  Note these are used in a pattern matching
+					 statement so SQL wild cards can be used.
+
+
+add_tgfs.pl			- takes input from STDIN which specifies an observed GBM TGF as:
+					  MET (micro-second precision max),
+					  TGF Id string (Optional. If ommitted, the 'bn' number of MET is used)
+					  
+					  The TGF gets added to the 'tgflist' table in $TGFDB.
+			
+					E.g,
+					> 239790805.191042
+					> 239790805.191042, "TGF #1"
+					
+					would make two entries, the first would be named '080807357',
+					the second 'TGF #1'.
+					
+					TGFs in the table are unique under this ID string. If the ID
+					or calculated bn number conflicts with one in the table, 
+					this input is skipped.
+					
+					To add a second TGF with the same bn number (say, two events ~ 10 seconds apart),
+					do something like:
+					> 239790805.191042
+					> 239790815.0, "080807357a"
+					
+					The first gets writting as "080807357", and the second does not conflict.
+					
+remove_tgfs.pl      - removes TGFs specified with a pattern matching the TGF ID string. e.g, "080807%".
+
+show_strokes.sh
+show_tgfs.sh        - Prints the current table to the screen
+
+
+
+
+remove_matches.pl   - Removes an association (aka, match) between a TGF and stroke.  The match table
+					  is stored in $TGFDB, and is written by the routine 'get_match_coords'.
+					  This script can be used to remove matches if need be.
+
+
+
+
+
+
+
+
+
