@@ -94,10 +94,10 @@ then re-run configure.
 
 
 *NOTE:
-It is recommended not to use '--with-rspgen', '--with-drmdb', or '--with-datadb'.
-These allow you to hard-code the location of the response generator, DRM database,
-and GBM data files database, but are not needed at compile time.  The environment
-variables GBMRSPDIR, GBMDRMDB002, and GBMDB will be used instead (at run-time)
+It is recommended to not use '--with-rspgen', '--with-drmdb', or '--with-datadb'.
+These simply allow you to hard-code the locations of the response generator, DRM database,
+and GBM data files database, e.g., if in a pipeline environment. Otherwise the environment
+variables GBMRSPDIR, GBMDRMDB002, and GBMDB will be used at run-time
 using the standard C routine 'getenv()'.*
 
 
